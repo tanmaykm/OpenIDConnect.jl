@@ -1,0 +1,7 @@
+{
+    "issuer": "https://your.auth.server/",
+    "authority": "https://your.auth.server/.well-known/openid-configuration",
+    "client_id": "sample-client-id",
+    "client_secret": "sample-client-secret",
+    "do_refresh": true
+}
