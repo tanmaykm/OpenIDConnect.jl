@@ -1,6 +1,6 @@
 name = "OpenIDConnect"
 uuid = "80707634-14ab-11e9-201b-89d596d661e9"
-authors = ["tan <tanmaykm@gmail.com>"]
+authors = ["Tanmay <tanmaykm@gmail.com>"]
 version = "0.1.0"
 
 [deps]
