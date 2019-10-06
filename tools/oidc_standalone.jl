@@ -54,7 +54,7 @@ end
 function show_token(oidcctx::OIDCCtx, authresp, authenticated)
     id_token = authresp["id_token"]
     jwt = JWT(;jwt=id_token)
-    isvalid = flow_validate_id_token(oidcctx, jwt)
+    isvalid = flow_validate_id_token(oidcctx, string(jwt))
 
     token_claims = claims(jwt)
 
