@@ -16,6 +16,10 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 julia = "≥ 1.0.0"
+HTTP = "0.8, 0.9"
+JSON = "0.21"
+JWTs = "0.1"
+MbedTLS = "0.6.8, 0.7, 1"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
