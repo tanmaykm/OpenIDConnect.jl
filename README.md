@@ -1,7 +1,7 @@
 # OpenIDConnect
 
-[![Build Status](https://travis-ci.org/tanmaykm/OpenIDConnect.jl.svg?branch=master)](https://travis-ci.org/tanmaykm/OpenIDConnect.jl)
-[![Coverage Status](https://coveralls.io/repos/tanmaykm/OpenIDConnect.jl/badge.svg?branch=master)](https://coveralls.io/r/tanmaykm/OpenIDConnect.jl?branch=master)
+[![Build Status](https://github.com/tanmaykm/OpenIDConnect.jl/workflows/CI/badge.svg)](https://github.com/tanmaykm/OpenIDConnect.jl/actions?query=workflow%3ACI+branch%3Amaster)
+[![codecov.io](http://codecov.io/github/tanmaykm/OpenIDConnect.jl/coverage.svg?branch=master)](http://codecov.io/github/tanmaykm/OpenIDConnect.jl?branch=master)
 
 [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html) is a simple identity layer on top of the OAuth 2.0 protocol. It enables Clients to verify the identity of the End-User based on the authentication performed by an Authorization Server, as well as to obtain basic profile information about the End-User in an interoperable and REST-like manner.
 
@@ -21,7 +21,8 @@ function OIDCCtx(
     cacrt::Union{Nothing,String,MbedTLS.CRT}=nothing,
     state_timeout_secs::Int=DEFAULT_STATE_TIMEOUT_SECS,
     allowed_skew_secs::Int=DEFAULT_SKEW_SECS,
-    key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS)
+    key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS),
+    random_device::RandomDevice=RandomDevice()
 )
 ```
 
@@ -30,7 +31,6 @@ Parameters:
 - `redirect_uri`: The app URI to which OpenID server must redirect after authorization
 - `client_id`, and `client_secret`: Client ID and secret that this context represents
 - `scopes`: The scopes to request during authorization (default: openid, profile, email)
-- `
 
 Keyword Parameters:
 - `verify`: whether to validate the server certificate
