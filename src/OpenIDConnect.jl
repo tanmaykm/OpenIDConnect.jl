@@ -32,10 +32,12 @@ struct OIDCCtx
     client_secret::String
     scopes::Vector{String}
     redirect_uri::String
+    random_device::RandomDevice
 
     function OIDCCtx(issuer::String, redirect_uri::String, client_id::String, client_secret::String, scopes::Vector{String}=DEFAULT_SCOPES;
                         verify::Union{Nothing,Bool}=nothing, cacrt::Union{Nothing,String,MbedTLS.CRT}=nothing,
-                        state_timeout_secs::Int=DEFAULT_STATE_TIMEOUT_SECS, allowed_skew_secs::Int=DEFAULT_SKEW_SECS, key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS)
+                        state_timeout_secs::Int=DEFAULT_STATE_TIMEOUT_SECS, allowed_skew_secs::Int=DEFAULT_SKEW_SECS, key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS,
+                        random_device::RandomDevice=RandomDevice())
         endswith(issuer, "/") || (issuer = issuer * "/")
         openid_config_url = issuer * ".well-known/openid-configuration"
         http_tls_opts = Dict{String,Any}()
@@ -61,7 +63,7 @@ struct OIDCCtx
         openid_config = JSON.parse(String(HTTP.request("GET", openid_config_url; status_exception=true, http_tls_opts...).body))
         validator = JWKSet(openid_config["jwks_uri"])
 
-        new(Dict{String,Float64}(), state_timeout_secs, allowed_skew_secs, openid_config, http_tls_opts, validator, key_refresh_secs, 0.0, client_id, client_secret, scopes, redirect_uri)
+        new(Dict{String,Float64}(), state_timeout_secs, allowed_skew_secs, openid_config, http_tls_opts, validator, key_refresh_secs, 0.0, client_id, client_secret, scopes, redirect_uri, random_device)
     end
 end
 
@@ -123,7 +125,7 @@ Caller must perform the redirection.
 function flow_request_authorization_code(ctx::OIDCCtx; nonce=nothing, display=nothing, prompt=nothing, max_age=nothing, ui_locales=nothing, id_token_hint=nothing, login_hint=nothing, acr_values=nothing)
     @debug("oidc negotiation: initiating...")
     scopes = join(ctx.scopes, ' ')
-    state = randstring(10)
+    state = randstring(ctx.random_device, 10)
     remember_state(ctx, state)
 
     query = Dict("response_type"=>"code", "client_id"=>ctx.client_id, "redirect_uri"=>ctx.redirect_uri, "scope"=>scopes, "state"=>state)

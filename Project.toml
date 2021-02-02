@@ -1,6 +1,7 @@
 name = "OpenIDConnect"
 uuid = "195a77af-17c0-520f-ac58-3336c7ea8576"
 keywords = ["openidconnect", "openid-connect", "openid", "openidc", "julia", "identity"]
+authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
 license = "MIT"
 desc = "OpenID Connect for Julia"
 version = "0.1.1"
