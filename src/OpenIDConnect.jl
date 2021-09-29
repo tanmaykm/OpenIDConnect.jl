@@ -24,7 +24,7 @@ struct OIDCCtx
     state_timeout_secs::Int
     allowed_skew_secs::Int
     openid_config::Dict{String,Any}
-    http_tls_opts::Dict{String,Any}
+    http_tls_opts::Dict{Symbol,Any}
     validator::JWKSet
     key_refresh_secs::Int
     last_key_refresh::Float64
@@ -40,7 +40,7 @@ struct OIDCCtx
                         random_device::RandomDevice=RandomDevice())
         endswith(issuer, "/") || (issuer = issuer * "/")
         openid_config_url = issuer * ".well-known/openid-configuration"
-        http_tls_opts = Dict{String,Any}()
+        http_tls_opts = Dict{Symbol,Any}()
 
         if verify !== nothing
             http_tls_opts[:require_ssl_verification] = verify
