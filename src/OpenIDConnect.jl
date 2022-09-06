@@ -47,16 +47,10 @@ struct OIDCCtx
         end
 
         if cacrt !== nothing
-            isa(cacrt, String) && (cacrt = MbedTLS.crt_parse(base64decode(cacrt)))
-            conf = MbedTLS.SSLConfig()
-            MbedTLS.config_defaults!(conf)
-            entropy = MbedTLS.Entropy()
-            rng = MbedTLS.CtrDrbg()
-            MbedTLS.seed!(rng, entropy)
-            MbedTLS.rng!(conf, rng)
-            MbedTLS.authmode!(conf, ((verify === nothing) || verify) ? MbedTLS.MBEDTLS_SSL_VERIFY_REQUIRED : MbedTLS.MBEDTLS_SSL_VERIFY_NONE)
+            isa(cacrt, String) && (cacrt = MbedTLS.crt_parse_file(cacrt))
+            conf = MbedTLS.SSLConfig(verify === nothing || verify)
             MbedTLS.ca_chain!(conf, cacrt)
-            http_tls_opts[:tlsconfig] = conf
+            http_tls_opts[:sslconfig] = conf
         end
 
         # fetch and store the openid config, along with the additional args for SSL
@@ -246,7 +240,9 @@ function flow_validate_id_token(ctx::OIDCCtx, jwt::JWT)
         if isvalid
             validator = ctx.validator
             if (time() - ctx.last_key_refresh) >= ctx.key_refresh_secs
-                refresh!(validator)
+                jstr = String(HTTP.get(ctx.validator.url; ctx.http_tls_opts...).body)
+                keys = JSON.parse(jstr)["keys"]
+                refresh!(keys, Dict{String,JWK}();)
             end
             isvalid = validate!(jwt, validator)
         end
