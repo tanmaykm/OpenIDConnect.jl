@@ -47,16 +47,12 @@ struct OIDCCtx
         end
 
         if cacrt !== nothing
-            isa(cacrt, String) && (cacrt = MbedTLS.crt_parse(base64decode(cacrt)))
-            conf = MbedTLS.SSLConfig()
-            MbedTLS.config_defaults!(conf)
-            entropy = MbedTLS.Entropy()
-            rng = MbedTLS.CtrDrbg()
-            MbedTLS.seed!(rng, entropy)
-            MbedTLS.rng!(conf, rng)
-            MbedTLS.authmode!(conf, ((verify === nothing) || verify) ? MbedTLS.MBEDTLS_SSL_VERIFY_REQUIRED : MbedTLS.MBEDTLS_SSL_VERIFY_NONE)
+            if isa(cacrt, String)
+                cacrt = isfile(cacrt) ? MbedTLS.crt_parse_file(cacrt) : MbedTLS.crt_parse(cacrt)
+            end
+            conf = MbedTLS.SSLConfig(verify === nothing || verify)
             MbedTLS.ca_chain!(conf, cacrt)
-            http_tls_opts[:tlsconfig] = conf
+            http_tls_opts[:sslconfig] = conf
         end
 
         # fetch and store the openid config, along with the additional args for SSL
@@ -149,8 +145,8 @@ See sections 3.1.2.5 and 3.1.2.6 of https://openid.net/specs/openid-connect-core
 Returns the authorization code on success.
 Returns one of APIError or AuthServerError on failure.
 """
-function flow_get_authorization_code(ctx::OIDCCtx, query)
-    state = get(query, "state", nothing)
+function flow_get_authorization_code(ctx::OIDCCtx, @nospecialize(query))
+    state = get(query, "state", get(query, :state, nothing))
     if state === nothing
         return APIError("invalid request, no state found")
     end
@@ -158,7 +154,7 @@ function flow_get_authorization_code(ctx::OIDCCtx, query)
         return APIError("invalid or expired state")
     end
 
-    code = get(query, "code", nothing)
+    code = get(query, "code", get(query, :code, nothing))
     if code !== nothing
         return String(code)
     end
@@ -246,7 +242,11 @@ function flow_validate_id_token(ctx::OIDCCtx, jwt::JWT)
         if isvalid
             validator = ctx.validator
             if (time() - ctx.last_key_refresh) >= ctx.key_refresh_secs
-                refresh!(validator)
+                jstr = String(HTTP.get(ctx.validator.url; ctx.http_tls_opts...).body)
+                keys = JSON.parse(jstr)["keys"]
+                keysetdict = Dict{String,JWK}()
+                refresh!(keys, keysetdict)
+                validator.keys = keysetdict
             end
             isvalid = validate!(jwt, validator)
         end
