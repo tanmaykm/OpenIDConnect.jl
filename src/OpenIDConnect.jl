@@ -143,8 +143,8 @@ See sections 3.1.2.5 and 3.1.2.6 of https://openid.net/specs/openid-connect-core
 Returns the authorization code on success.
 Returns one of APIError or AuthServerError on failure.
 """
-function flow_get_authorization_code(ctx::OIDCCtx, query)
-    state = get(query, "state", nothing)
+function flow_get_authorization_code(ctx::OIDCCtx, @nospecialize(query))
+    state = get(query, "state", get(query, :state, nothing))
     if state === nothing
         return APIError("invalid request, no state found")
     end
@@ -152,7 +152,7 @@ function flow_get_authorization_code(ctx::OIDCCtx, query)
         return APIError("invalid or expired state")
     end
 
-    code = get(query, "code", nothing)
+    code = get(query, "code", get(query, :code, nothing))
     if code !== nothing
         return String(code)
     end
