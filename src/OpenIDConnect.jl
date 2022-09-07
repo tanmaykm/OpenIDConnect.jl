@@ -47,7 +47,9 @@ struct OIDCCtx
         end
 
         if cacrt !== nothing
-            isa(cacrt, String) && (cacrt = MbedTLS.crt_parse_file(cacrt))
+            if isa(cacrt, String)
+                cacrt = isfile(cacrt) ? MbedTLS.crt_parse_file(cacrt) : MbedTLS.crt_parse(cacrt)
+            end
             conf = MbedTLS.SSLConfig(verify === nothing || verify)
             MbedTLS.ca_chain!(conf, cacrt)
             http_tls_opts[:sslconfig] = conf
@@ -242,7 +244,9 @@ function flow_validate_id_token(ctx::OIDCCtx, jwt::JWT)
             if (time() - ctx.last_key_refresh) >= ctx.key_refresh_secs
                 jstr = String(HTTP.get(ctx.validator.url; ctx.http_tls_opts...).body)
                 keys = JSON.parse(jstr)["keys"]
-                refresh!(keys, Dict{String,JWK}();)
+                keysetdict = Dict{String,JWK}()
+                refresh!(keys, keysetdict)
+                validator.keys = keysetdict
             end
             isvalid = validate!(jwt, validator)
         end
