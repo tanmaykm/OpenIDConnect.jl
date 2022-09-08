@@ -134,7 +134,7 @@ function flow_request_authorization_code(ctx::OIDCCtx; nonce=nothing, display=no
     (login_hint     === nothing) || (query["login_hint"]    = String(login_hint))
     (acr_values     === nothing) || (query["acr_values"]    = String(acr_values))
 
-    uri = HTTP.merge(HTTP.URIs.URI(authorization_endpoint(ctx)); query=query)
+    uri = HTTP.URIs.URI(HTTP.URIs.URI(authorization_endpoint(ctx)); query=query)
     return string(uri)
 end
 
