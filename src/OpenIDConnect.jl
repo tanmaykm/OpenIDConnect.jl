@@ -41,6 +41,7 @@ struct OIDCCtx
         endswith(issuer, "/") || (issuer = issuer * "/")
         openid_config_url = issuer * ".well-known/openid-configuration"
         http_tls_opts = Dict{Symbol,Any}()
+        http_tls_opts[:socket_type_tls] = MbedTLS.SSLContext
 
         if verify !== nothing
             http_tls_opts[:require_ssl_verification] = verify
