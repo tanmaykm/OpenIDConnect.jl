@@ -13,13 +13,15 @@ JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 JWTs = "d850fbd6-035d-5a70-a269-1ca2e636ac6c"
 MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [compat]
 julia = "1"
 HTTP = "0.8, 0.9, 1"
 JSON = "0.21"
-JWTs = "0.1,0.2"
+JWTs = "0.1, 0.2, 0.3"
 MbedTLS = "0.6.8, 0.7, 1"
+SHA = "<0.0.1, 0.7, 1"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
