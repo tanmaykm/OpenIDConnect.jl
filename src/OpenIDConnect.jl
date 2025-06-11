@@ -5,7 +5,7 @@ using JSON
 using MbedTLS
 using Base64
 using Random
-using Random.SHA 
+using SHA 
 using JWTs
 
 const DEFAULT_SCOPES = ["openid", "profile", "email"]
