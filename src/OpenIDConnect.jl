@@ -189,12 +189,9 @@ function flow_get_authorization_code(ctx::OIDCCtx, @nospecialize(query))
     code = get(query, "code", get(query, :code, nothing))
     if code !== nothing
         if haskey(ctx.code_verifiers, state)
-            # store the verifier under the key code, 
-            # because that's the only available information during `flow_get_token()`
-            # and store the validity of the code in states for purging purposes, even if it's not a state
-            ctx.code_verifiers[code] = ctx.code_verifiers[state]
-            delete!(ctx.code_verifiers, state)
-            remember_state(ctx, code)
+            code_verifier = pop!(ctx.code_verifiers, state)
+            # as space characters are not allowed in code strings, it is safe to conacatenate with ' '
+            code *= " $code_verifier"
         end
         return String(code)
     end
@@ -233,19 +230,19 @@ Returns a JSON object containing tokens on success.
 Returns a AuthServerError or APIError object on failure.
 """
 function flow_get_token(ctx::OIDCCtx, code)
+    sc = split(code, ' ')
+    pkce = length(sc) > 1
+    code, code_verifier = pkce ? String.(sc[1:2]) : [String(code), ""]
+
     data = Dict("grant_type"=>"authorization_code",
-                "code"=>String(code),
+                "code"=>code,
                 "redirect_uri"=>ctx.redirect_uri,
                 "client_id"=>ctx.client_id,
                 "client_secret"=>ctx.client_secret)
-    code_verifier = get(ctx.code_verifiers, code, "")
-    isempty(code_verifier) || push!(data, "code_verifier" => code_verifier)
+    pkce && push!(data, "code_verifier" => code_verifier)
+
     headers = Dict("Content-Type"=>"application/x-www-form-urlencoded")
     tok_res = HTTP.request("POST", token_endpoint(ctx), headers, HTTP.URIs.escapeuri(data); status_exception=false, ctx.http_tls_opts...)
-    if !isempty(code_verifier)
-        delete!(ctx.states, code)
-        delete!(ctx.code_verifiers, code)
-    end
     return parse_token_response(tok_res)
 end
 
