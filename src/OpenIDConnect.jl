@@ -5,6 +5,7 @@ using JSON
 using MbedTLS
 using Base64
 using Random
+using SHA 
 using JWTs
 
 const DEFAULT_SCOPES = ["openid", "profile", "email"]
@@ -21,6 +22,7 @@ The context holds request states, and configuration options.
 """
 struct OIDCCtx
     states::Dict{String,Float64}
+    code_verifiers::Dict{String,String}
     state_timeout_secs::Int
     allowed_skew_secs::Int
     openid_config::Dict{String,Any}
@@ -60,7 +62,7 @@ struct OIDCCtx
         openid_config = JSON.parse(String(HTTP.request("GET", openid_config_url; status_exception=true, http_tls_opts...).body))
         validator = JWKSet(openid_config["jwks_uri"])
 
-        new(Dict{String,Float64}(), state_timeout_secs, allowed_skew_secs, openid_config, http_tls_opts, validator, key_refresh_secs, 0.0, client_id, client_secret, scopes, redirect_uri, random_device)
+        new(Dict{String,Float64}(), Dict{String,String}(), state_timeout_secs, allowed_skew_secs, openid_config, http_tls_opts, validator, key_refresh_secs, 0.0, client_id, client_secret, scopes, redirect_uri, random_device)
     end
 end
 
@@ -69,6 +71,11 @@ token_endpoint(ctx::OIDCCtx) = ctx.openid_config["token_endpoint"]
 
 function remember_state(ctx::OIDCCtx, state::String)
     ctx.states[state] = time()
+    nothing
+end
+
+function remember_verifier(ctx::OIDCCtx, state::String, code_verifier::String)
+    ctx.code_verifiers[state] = code_verifier
     nothing
 end
 
@@ -88,11 +95,27 @@ function validate_state(ctx::OIDCCtx, state::String)
     false
 end
 
-function purge_states(ctx::OIDCCtx)
+function purge_states!(ctx::OIDCCtx)
     tnow = time()
     tmout = ctx.state_timeout_secs
-    filter!(nv->(tnow-nv[2])>tmout, ctx.states)
+    nv_keys = findall(nv->(tnow-nv)>tmout, ctx.states)
+    for k in nv_keys
+        delete!(ctx.states, k)
+        delete!(ctx.code_verifiers, k)
+    end
     nothing
+end
+
+# for compatibility
+const purge_states = purge_states!
+
+function generate_code_challenge(ctx::Union{OIDCCtx,Nothing})
+    code_verifier = ctx === nothing ? randstring(128) : randstring(ctx.random_device, 128)
+    hash = sha256(code_verifier)
+    # see https://datatracker.ietf.org/doc/html/rfc7636#appendix-B
+    code_challenge = replace(rstrip(base64encode(hash), '='), '+' => '-', '/' => '_')
+
+    return code_challenge, code_verifier
 end
 
 """
@@ -119,13 +142,21 @@ Acceptable optional args as listed in section 3.1.2.1 of specifications (https:/
 Returns a String with the redirect URL.
 Caller must perform the redirection.
 """
-function flow_request_authorization_code(ctx::OIDCCtx; nonce=nothing, display=nothing, prompt=nothing, max_age=nothing, ui_locales=nothing, id_token_hint=nothing, login_hint=nothing, acr_values=nothing)
+function flow_request_authorization_code(ctx::OIDCCtx; nonce=nothing, display=nothing, prompt=nothing, max_age=nothing, ui_locales=nothing, id_token_hint=nothing, login_hint=nothing, acr_values=nothing, pkce::Bool=false)
     @debug("oidc negotiation: initiating...")
     scopes = join(ctx.scopes, ' ')
     state = randstring(ctx.random_device, 10)
     remember_state(ctx, state)
 
     query = Dict("response_type"=>"code", "client_id"=>ctx.client_id, "redirect_uri"=>ctx.redirect_uri, "scope"=>scopes, "state"=>state)
+
+    if pkce
+        code_challenge, code_verifier = generate_code_challenge(ctx)
+        remember_verifier(ctx, state, code_verifier)
+        query["code_challenge_method"] = "S256"
+        query["code_challenge"] = code_challenge
+    end
+
     (nonce          === nothing) || (query["nonce"]         = String(nonce))
     (display        === nothing) || (query["display"]       = String(display))
     (prompt         === nothing) || (query["prompt"]        = String(prompt))
@@ -157,6 +188,11 @@ function flow_get_authorization_code(ctx::OIDCCtx, @nospecialize(query))
 
     code = get(query, "code", get(query, :code, nothing))
     if code !== nothing
+        if haskey(ctx.code_verifiers, state)
+            code_verifier = pop!(ctx.code_verifiers, state)
+            # as space characters are not allowed in code strings, it is safe to conacatenate with ' '
+            code *= " $code_verifier"
+        end
         return String(code)
     end
 
@@ -197,11 +233,17 @@ Passing a decrypt function allows for custom decryption of the client secret
 if the client secret has been encrypted.
 """
 function flow_get_token(ctx::OIDCCtx, code; decrypt::Function = identity)
+    sc = split(code, ' ')
+    pkce = length(sc) > 1
+    code, code_verifier = pkce ? String.(sc[1:2]) : [String(code), ""]
+
     data = Dict("grant_type"=>"authorization_code",
-                "code"=>String(code),
+                "code"=>code,
                 "redirect_uri"=>ctx.redirect_uri,
                 "client_id"=>ctx.client_id,
                 "client_secret"=>decrypt(ctx.client_secret))
+    pkce && push!(data, "code_verifier" => code_verifier)
+
     headers = Dict("Content-Type"=>"application/x-www-form-urlencoded")
     tok_res = HTTP.request("POST", token_endpoint(ctx), headers, HTTP.URIs.escapeuri(data); status_exception=false, ctx.http_tls_opts...)
     return parse_token_response(tok_res)
