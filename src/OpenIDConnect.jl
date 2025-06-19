@@ -228,8 +228,11 @@ See section 3.1.3.1 of https://openid.net/specs/openid-connect-core-1_0.html.
 
 Returns a JSON object containing tokens on success.
 Returns a AuthServerError or APIError object on failure.
+
+Passing a decrypt function allows for custom decryption of the client secret
+if the client secret has been encrypted.
 """
-function flow_get_token(ctx::OIDCCtx, code)
+function flow_get_token(ctx::OIDCCtx, code; decrypt::Function = identity)
     sc = split(code, ' ')
     pkce = length(sc) > 1
     code, code_verifier = pkce ? String.(sc[1:2]) : [String(code), ""]
@@ -238,7 +241,7 @@ function flow_get_token(ctx::OIDCCtx, code)
                 "code"=>code,
                 "redirect_uri"=>ctx.redirect_uri,
                 "client_id"=>ctx.client_id,
-                "client_secret"=>ctx.client_secret)
+                "client_secret"=>decrypt(ctx.client_secret))
     pkce && push!(data, "code_verifier" => code_verifier)
 
     headers = Dict("Content-Type"=>"application/x-www-form-urlencoded")
@@ -252,12 +255,15 @@ See section 12 of https://openid.net/specs/openid-connect-core-1_0.html.
 
 Returns a JSON object containing tokens on success.
 Returns a AuthServerError or APIError object on failure.
+
+Passing a decrypt function allows for custom decryption of the client secret
+if the client secret has been encrypted.
 """
-function flow_refresh_token(ctx::OIDCCtx, refresh_token)
+function flow_refresh_token(ctx::OIDCCtx, refresh_token; decrypt = identity)
     data = Dict("grant_type"=>"refresh_token",
                 "refresh_token"=>String(refresh_token),
                 "client_id"=>ctx.client_id,
-                "client_secret"=>ctx.client_secret)
+                "client_secret"=>decrypt(ctx.client_secret))
     headers = Dict("Content-Type"=>"application/x-www-form-urlencoded")
     tok_res = HTTP.request("POST", token_endpoint(ctx), headers, HTTP.URIs.escapeuri(data); status_exception=false, ctx.http_tls_opts...)
     return parse_token_response(tok_res)
