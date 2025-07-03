@@ -66,7 +66,8 @@ function flow_request_authorization_code(
     ui_locales=nothing,
     id_token_hint=nothing,
     login_hint=nothing,
-    acr_values=nothing
+    acr_values=nothing,
+    pkce=false,
 )
 ```
 
@@ -130,4 +131,51 @@ function flow_validate_id_token(
 
 # Examples
 
-An example application built using OpenIDClient with Mux and HTTP is available as a [tool](tools/oidc_standalone.jl). Populate a configuration file following this [template](tools/settings.template) and start the standalone application. Point your browser to it to experience the complete flow.
+## Standalone OIDC Demo
+
+An example application built using OpenIDConnect using HTTP.jl is available as a [tool](tools/oidc_standalone.jl). The application demonstrates:
+
+- **PKCE Support**: Proper implementation of Proof Key for Code Exchange (RFC 7636)
+- **Pure Julia Flow**: Server-side authorization code flow without JavaScript dependencies
+- **Error Handling**: Comprehensive error display for debugging
+- **Token Refresh**: Support for refreshing access tokens
+
+### Quick Start with Dex
+
+The easiest way to check out the OIDC flow is using the included Dex test environment:
+
+```bash
+# Start the Dex OpenID Connect server
+cd tools/dex
+./start_dex.sh
+
+# In another terminal, start the Julia client
+julia ../oidc_standalone.jl settings.dex.json
+
+# Open browser to http://127.0.0.1:8888
+# Login with: admin@example.com / password
+```
+
+The tool can be used with any OpenID Connect provider by configuring the settings file.
+
+### Usage
+
+```bash
+julia tools/oidc_standalone.jl <config-file> [--no-pkce]
+```
+
+- `config-file`: JSON configuration file (see [template](tools/settings.template))
+- `--no-pkce`: Disable PKCE (enabled by default)
+
+### Configuration
+
+Populate a configuration file following this [template](tools/settings.template):
+
+```json
+{
+    "issuer": "https://your.openid.provider/",
+    "client_id": "your-client-id",
+    "client_secret": "your-client-secret",
+    "do_refresh": true
+}
+```
