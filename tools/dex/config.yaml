@@ -1,0 +1,62 @@
+issuer: http://127.0.0.1:5556/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+frontend:
+  theme: "light"
+  issuer: "OpenID Connect Demo"
+  issuerUrl: "http://127.0.0.1:5556/dex"
+  logoUrl: ""
+
+expiry:
+  deviceRequests: "5m"
+  signingKeys: "6h"
+  idTokens: "24h"
+  authRequests: "24h"
+  refreshTokens:
+    reuseInterval: "3s"
+    validIfNotUsedFor: "2160h" # 90 days
+    absoluteLifetime: "3960h" # 165 days
+
+logger:
+  level: "info"
+  format: "json"
+
+oauth2:
+  responseTypes: ["code", "token", "id_token"]
+  skipApprovalScreen: true
+  alwaysShowLoginScreen: false
+  passwordConnector: local
+
+staticClients:
+- id: local
+  redirectURIs:
+  - 'http://127.0.0.1:8888/auth/login'
+  name: 'OpenID Connect Demo'
+  secret: '123123123ABCABCABC123123123ABCAB'
+  trustedPeers:
+  - local
+
+connectors:
+- type: mockCallback
+  id: mock
+  name: Mock
+  config:
+    username: "admin@example.com"
+    groups: ["admin", "users"]
+
+staticPasswords:
+- email: "admin@example.com"
+  # bcrypt hash of "password"
+  hash: "$2y$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "admin"
+  userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+  groups:
+  - "admin"
+  - "users"
+
+enablePasswordDB: true

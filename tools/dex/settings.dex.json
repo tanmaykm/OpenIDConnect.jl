@@ -1,0 +1,7 @@
+{
+    "issuer": "http://127.0.0.1:5556/dex",
+    "authority": "http://127.0.0.1:5556/dex/.well-known/openid-configuration",
+    "client_id": "local",
+    "client_secret": "123123123ABCABCABC123123123ABCAB",
+    "do_refresh": true
+}
