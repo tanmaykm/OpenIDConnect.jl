@@ -18,7 +18,7 @@ SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 [compat]
 julia = "1"
 HTTP = "0.8, 0.9, 1"
-JSON = "0.21"
+JSON = "0.21, 1"
 JWTs = "0.1, 0.2, 0.3"
 MbedTLS = "0.6.8, 0.7, 1"
 SHA = "<0.0.1, 0.7, 1"

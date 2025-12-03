@@ -253,7 +253,7 @@ function main()
     
     # Load configuration
     config = open(config_file, "r") do f
-        JSON.parse(f)
+        JSON.parse(f, dicttype = Dict{String,Any})
     end
     
     # Create OIDC context

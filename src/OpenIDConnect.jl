@@ -59,7 +59,10 @@ struct OIDCCtx
         end
 
         # fetch and store the openid config, along with the additional args for SSL
-        openid_config = JSON.parse(String(HTTP.request("GET", openid_config_url; status_exception=true, http_tls_opts...).body))
+        openid_config = JSON.parse(
+            String(HTTP.request("GET", openid_config_url; status_exception=true, http_tls_opts...).body),
+            dicttype = Dict{String,Any}
+        )
         validator = JWKSet(openid_config["jwks_uri"])
 
         new(Dict{String,Float64}(), Dict{String,String}(), state_timeout_secs, allowed_skew_secs, openid_config, http_tls_opts, validator, key_refresh_secs, 0.0, client_id, client_secret, scopes, redirect_uri, random_device)
@@ -208,11 +211,11 @@ function parse_token_response(tok_res)
     resp_str = String(tok_res.body)
 
     if tok_res.status == 200
-        return JSON.parse(resp_str)
+        return JSON.parse(resp_str, dicttype = Dict{String,Any})
     end
 
     try
-        err_resp = JSON.parse(resp_str)
+        err_resp = JSON.parse(resp_str, dicttype = Dict{String,Any})
         errcode = get(err_resp, "error", nothing)
         if errcode !== nothing
             return AuthServerError(errcode, get(err_resp, "error_description", nothing), get(err_resp, "error_uri", nothing))
@@ -292,7 +295,7 @@ function flow_validate_id_token(ctx::OIDCCtx, jwt::JWT)
             validator = ctx.validator
             if (time() - ctx.last_key_refresh) >= ctx.key_refresh_secs
                 jstr = String(HTTP.get(ctx.validator.url; ctx.http_tls_opts...).body)
-                keys = JSON.parse(jstr)["keys"]
+                keys = JSON.parse(jstr, dicttype = Dict{String,Any})["keys"]
                 keysetdict = Dict{String,JWK}()
                 refresh!(keys, keysetdict)
                 validator.keys = keysetdict
