@@ -2,6 +2,7 @@ using OpenIDConnect
 using Test
 using Random
 using HTTP
+using NetworkOptions
 
 function test_state_store()
     @testset "State store" begin
@@ -68,7 +69,28 @@ function test_oidc_flow()
     end
 end
 
+function test_custom_cacrt()
+    @testset "Custom CA certificate" begin
+        cafile = NetworkOptions.ca_roots_path()
+
+        # A custom CA file builds a custom HTTP.Client; the context must construct
+        # and resolve the openid configuration successfully.
+        ctx = OIDCCtx("https://accounts.google.com", "http://127.0.0.1:8888/auth/login", "test_client_id", "test_client_secret"; cacrt=cafile)
+        @test OpenIDConnect.token_endpoint(ctx) == "https://oauth2.googleapis.com/token"
+
+        # Regression: verify=false together with cacrt must not throw. HTTP v2 rejects
+        # require_ssl_verification overrides when an explicit client is passed, so the
+        # verify intent has to be carried by the TLS config instead.
+        ctx = OIDCCtx("https://accounts.google.com", "http://127.0.0.1:8888/auth/login", "test_client_id", "test_client_secret"; verify=false, cacrt=cafile)
+        @test OpenIDConnect.token_endpoint(ctx) == "https://oauth2.googleapis.com/token"
+
+        # A cacrt that is not an existing file is rejected with a clear error.
+        @test_throws ErrorException OIDCCtx("https://accounts.google.com", "http://127.0.0.1:8888/auth/login", "test_client_id", "test_client_secret"; cacrt="/no/such/ca-file.pem")
+    end
+end
+
 @testset "OpenIDConnect" begin
     test_state_store()
     test_oidc_flow()
+    test_custom_cacrt()
 end

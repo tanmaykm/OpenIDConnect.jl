@@ -18,7 +18,7 @@ function OIDCCtx(
     client_secret::String,
     scopes::Vector{String}=DEFAULT_SCOPES;
     verify::Union{Nothing,Bool}=nothing,
-    cacrt::Union{Nothing,String,MbedTLS.CRT}=nothing,
+    cacrt::Union{Nothing,String}=nothing,
     state_timeout_secs::Int=DEFAULT_STATE_TIMEOUT_SECS,
     allowed_skew_secs::Int=DEFAULT_SKEW_SECS,
     key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS),
@@ -34,7 +34,7 @@ Parameters:
 
 Keyword Parameters:
 - `verify`: whether to validate the server certificate
-- `cacrt`: the CA certificate to use to check the server certificate
+- `cacrt`: path to a CA certificate file (PEM) to use to check the server certificate. Must be a path to an existing file (since the HTTP v2 / Reseau migration, passing certificate contents or an `MbedTLS.CRT` is no longer supported)
 - `state_timeout_secs`: seconds for which to keep the state associated with an authorization request (default: 60 seconds), server responses beyond this are rejected as stale
 - `allowed_skew_secs`: while validating tokens, seconds to allow to account for time skew between machines (default: 120 seconds)
 - `key_refresh_secs`: time interval in which to refresh the JWT signing keys (default: 1hr)

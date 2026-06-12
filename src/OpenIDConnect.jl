@@ -2,11 +2,14 @@ module OpenIDConnect
 
 using HTTP
 using JSON
-using MbedTLS
 using Base64
 using Random
-using SHA 
+using SHA
 using JWTs
+
+# Import Reseau.TLS for HTTP v2 custom certificate support
+import Reseau
+const TLS = Reseau.TLS
 
 const DEFAULT_SCOPES = ["openid", "profile", "email"]
 const DEFAULT_STATE_TIMEOUT_SECS = 60
@@ -37,25 +40,46 @@ struct OIDCCtx
     random_device::RandomDevice
 
     function OIDCCtx(issuer::String, redirect_uri::String, client_id::String, client_secret::String, scopes::Vector{String}=DEFAULT_SCOPES;
-                        verify::Union{Nothing,Bool}=nothing, cacrt::Union{Nothing,String,MbedTLS.CRT}=nothing,
+                        verify::Union{Nothing,Bool}=nothing, cacrt::Union{Nothing,String}=nothing,
                         state_timeout_secs::Int=DEFAULT_STATE_TIMEOUT_SECS, allowed_skew_secs::Int=DEFAULT_SKEW_SECS, key_refresh_secs::Int=DEFAULT_KEY_REFRESH_SECS,
                         random_device::RandomDevice=RandomDevice())
         endswith(issuer, "/") || (issuer = issuer * "/")
         openid_config_url = issuer * ".well-known/openid-configuration"
         http_tls_opts = Dict{Symbol,Any}()
-        http_tls_opts[:socket_type_tls] = MbedTLS.SSLContext
-
-        if verify !== nothing
-            http_tls_opts[:require_ssl_verification] = verify
-        end
 
         if cacrt !== nothing
-            if isa(cacrt, String)
-                cacrt = isfile(cacrt) ? MbedTLS.crt_parse_file(cacrt) : MbedTLS.crt_parse(cacrt)
+            if !isfile(cacrt)
+                error("cacrt must be a path to an existing certificate file; got: $cacrt")
             end
-            conf = MbedTLS.SSLConfig(verify === nothing || verify)
-            MbedTLS.ca_chain!(conf, cacrt)
-            http_tls_opts[:sslconfig] = conf
+            # A custom CA requires a custom HTTP.Client built around a Reseau TLS.Config.
+            # The verify intent is baked into the TLS.Config below (verify_peer/verify_hostname);
+            # we must NOT also pass require_ssl_verification, since HTTP v2 throws when that
+            # keyword is combined with an explicit client.
+            verify_peer = verify === nothing || verify
+            tls_config = TLS.Config(
+                nothing,  # server_name
+                verify_peer,  # verify_peer
+                verify_peer,  # verify_hostname
+                TLS.ClientAuthMode.NoClientCert,  # client_auth
+                nothing,  # cert_file
+                nothing,  # key_file
+                cacrt,    # ca_file
+                nothing,  # client_ca_file
+                String[], # alpn_protocols
+                UInt16[], # curve_preferences
+                Int64(30_000_000_000),  # handshake_timeout_ns (30 seconds)
+                TLS.TLS1_2_VERSION,  # min_version
+                nothing,  # max_version
+                false,    # session_tickets_disabled
+                64,       # session_cache_capacity
+            )
+            # Create custom transport with TLS config
+            transport = HTTP.Transport(; tls_config)
+            # Create custom client
+            http_tls_opts[:client] = HTTP.Client(; transport)
+        elseif verify !== nothing
+            # No custom CA: control verification through the per-request keyword on the default client.
+            http_tls_opts[:require_ssl_verification] = verify
         end
 
         # fetch and store the openid config, along with the additional args for SSL

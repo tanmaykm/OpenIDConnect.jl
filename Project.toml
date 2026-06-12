@@ -1,31 +1,32 @@
 name = "OpenIDConnect"
 uuid = "195a77af-17c0-520f-ac58-3336c7ea8576"
 keywords = ["openidconnect", "openid-connect", "openid", "openidc", "julia", "identity"]
-authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
 license = "MIT"
 desc = "OpenID Connect for Julia"
-version = "0.1.8"
+version = "0.2.0"
+authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 JWTs = "d850fbd6-035d-5a70-a269-1ca2e636ac6c"
-MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Reseau = "802f3686-a58f-41ce-bb0c-3c43c75bba36"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [compat]
-julia = "1"
-HTTP = "0.8, 0.9, 1"
+HTTP = "2.1.1"
 JSON = "0.21, 1"
 JWTs = "0.1, 0.2, 0.3"
-MbedTLS = "0.6.8, 0.7, 1"
+Reseau = "1.2.1"
 SHA = "<0.0.1, 0.7, 1"
+julia = "1.10"
 
 [extras]
+NetworkOptions = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Random"]
+test = ["Test", "Random", "NetworkOptions"]
