@@ -3,7 +3,7 @@ uuid = "195a77af-17c0-520f-ac58-3336c7ea8576"
 keywords = ["openidconnect", "openid-connect", "openid", "openidc", "julia", "identity"]
 license = "MIT"
 desc = "OpenID Connect for Julia"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
 
 [deps]
@@ -18,7 +18,7 @@ SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 [compat]
 HTTP = "2.1.1"
 JSON = "0.21, 1"
-JWTs = "0.1, 0.2, 0.3"
+JWTs = "0.1, 0.2, 0.3, 1"
 Reseau = "1.2.1"
 SHA = "<0.0.1, 0.7, 1"
 julia = "1.10"
