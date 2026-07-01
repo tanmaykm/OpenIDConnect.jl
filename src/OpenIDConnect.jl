@@ -5,7 +5,10 @@ using JSON
 using Base64
 using Random
 using SHA
-using JWTs
+# Import names explicitly rather than `using JWTs`: JWTs 1.0 exports nothing
+# (names are `public`, not exported). A selective import resolves the bindings
+# directly, so this works unchanged on JWTs 0.3 and 1.0 alike.
+using JWTs: JWKSet, JWT, JWK, issigned, claims, refresh!, validate!
 
 # Import Reseau.TLS for HTTP v2 custom certificate support
 import Reseau
